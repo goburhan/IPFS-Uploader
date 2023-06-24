@@ -1,0 +1,5 @@
+import Moralis from "moralis";
+Moralis.start({
+  apiKey:
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6IjNhMzdjN2ZlLWExNDgtNDc1MS04MTBjLTBhNzcwMDM0NGYyNSIsIm9yZ0lkIjoiMjg3NjcwIiwidXNlcklkIjoiMjk0MTAyIiwidHlwZUlkIjoiYzUyZjE1OTYtNmIyMC00NGFhLThjNmEtM2FlMDQ2NWNlZjQzIiwidHlwZSI6IlBST0pFQ1QiLCJpYXQiOjE2ODcxOTIzMzYsImV4cCI6NDg0Mjk1MjMzNn0._ipQD_XlxaV0DPkT0W3NXAX9Ej-6N_UiZmodjTs3pfQ",
+});
