@@ -2,16 +2,13 @@ import Button from "@/components/Buttons";
 import { Flex, Input } from "@/styles/styled";
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
-import { create } from "ipfs-http-client";
-import CircularProgress from "@mui/material/CircularProgress";
-import Moralis from "moralis";
-import { useAccount, useContract } from "wagmi";
+import { useAccount, useContract, useSignMessage } from "wagmi";
 import useUserCollections from "@/hooks/useUserCollections";
 import $ from "jquery";
 import JSZip from "jszip";
 import { NFTStorage, File } from "nft.storage";
-import mime from "mime";
 import path from "path";
+import { useSignatureMessage } from "@/hooks/useSignMessage";
 
 const StyledMain = styled.div`
   display: grid;
@@ -56,7 +53,14 @@ export default function Nft() {
   const url =
     "http://groll2.eu-central-1.elasticbeanstalk.com/nft/json/0x8323B1A1057B76476eed77E98a35Ed7B26D50a7F/gallery_01_01";
   const [fields, setFields] = React.useState([{ key: "", value: "" }]);
+  const [cid, setCid] = useState();
   const [convertedLink, setConvertedLink] = useState();
+  const msg = useSignatureMessage();
+  const userAddress = useAccount();
+
+  const { data, isError, isLoading, isSuccess, signMessage } = useSignMessage({
+    message: msg,
+  });
 
   const [nftInfo, setNftInfo] = useState({
     name: "",
@@ -66,64 +70,10 @@ export default function Nft() {
     external: "Default URL",
   });
 
-  const handleClick = async () => {
-    const imageUrl = nft;
-    const abi = [
-      {
-        path: "boss.png",
-        content: imageUrl,
-      },
-    ];
-    console.log(abi);
-    const response = await Moralis.EvmApi.ipfs.uploadFolder(
-      { abi },
-      { encoding: "base64" }
-    );
-
-    const splitLink = response.jsonResponse[0].path.split("/");
-    const ipfsHash = splitLink.slice(-2).join("/");
-
-    const httpLink = `https://ipfs.io/ipfs/${ipfsHash}`;
-    setConvertedLink(httpLink);
-  };
-
-  // UNCOMMENT THİS USEEFFECT TO MAKE AUTOMATİCALLY UPLOAD TO IPFS
-  //const [nftUrl, setNftUrl] = useState();
-
-  // useEffect(() => {
-  //   const handleClick = async () => {
-  //     const imageUrl = convertedLink;
-  //     const abi = [
-  //       {
-  //         path: "metadata.json",
-  //         content: {
-  //           image: imageUrl,
-  //           name: nftInfo.name,
-  //           description: nftInfo.description,
-  //           collection: nftInfo.collection,
-  //           attributes: [
-  //             fields.map((field) => ({
-  //               key: field.key,
-  //               value: field.value,
-  //             })),
-  //           ],
-  //         },
-  //       },
-  //     ];
-  //     const response = await Moralis.EvmApi.ipfs.uploadFolder({ abi });
-
-  //     const splitLink = response.jsonResponse[0].path.split("/");
-  //     const ipfsHash = splitLink.slice(-2).join("/");
-
-  //     const httpLink = `https://ipfs.io/ipfs/${ipfsHash}`;
-  //     setNftUrl(httpLink);
-  //   };
-  //   handleClick();
-  // }, [convertedLink]);
-
   useEffect(() => {
     if (!convertedLink) return;
-    const data = {
+
+    const payload = {
       contractAddress: process.env.NEXT_PUBLIC_PROLL_CONTRACT,
       name: nftInfo.name,
       description: nftInfo.description,
@@ -134,53 +84,91 @@ export default function Nft() {
         trait_type: field.key,
         value: field.value,
       })),
+      auth: {
+        signedMessage: data,
+        signature: "",
+      },
     };
 
-    // $.ajax({
-    //   url: process.env.NEXT_PUBLIC_NFT_INSERT_REQ2,
-    //   type: "POST",
-    //   data: JSON.stringify(data),
-    //   contentType: "application/json",
-    //   success: function (response) {
-    //     console.log(response);
-    //   },
-    //   error: function (error) {
-    //     console.error("Error:", error);
-    //   },
-    // });
-  }, [convertedLink]);
+    $.ajax({
+      url: process.env.NEXT_PUBLIC_NFT_INSERT_REQ2,
+      type: "POST",
+      data: JSON.stringify(data),
+      contentType: "application/json",
+      success: function (response) {
+        console.log(response);
+      },
+      error: function (error) {
+        console.error("Error:", error);
+      },
+    });
+  }, [cid]);
 
-  //htt ps://ipfs.io/ipfs/<your-ipfs-hash>/test.zip
-  const [Cid, setCid] = useState();
+  // const submitFunc = async () => {
+  //   const data = {
+  //     contractAddress: process.env.NEXT_PUBLIC_PROLL_CONTRACT,
+  //     name: nftInfo.name,
+  //     description: nftInfo.description,
+  //     type: nftInfo.type,
+  //     tokenId: 10,
+  //     image: convertedLink,
+  //     attributes: fields.map((field) => ({
+  //       trait_type: field.key,
+  //       value: field.value,
+  //     })),
+  //     auth: {
+  //       signature: "",
+  //       address: "",
+  //     },
+  //   };
+
+  //   $.ajax({
+  //     url: process.env.NEXT_PUBLIC_NFT_INSERT_REQ,
+  //     type: "POST",
+  //     data: JSON.stringify(data),
+  //     contentType: "application/json",
+  //     success: function (response) {
+  //       console.log(response);
+  //     },
+  //     error: function (error) {
+  //       console.error("Error:", error);
+  //     },
+  //   });
+  // };
+
   const handleImageUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onloadend = async () => {
-      const zip = new JSZip();
-      const contents = await zip.loadAsync(reader.result);
-
-      const filePromises = [];
-      contents.forEach((relativePath, zipEntry) => {
-        if (!zipEntry.dir) {
-          const filePromise = zipEntry.async("blob").then((content) => ({
-            path: relativePath,
-            content,
-          }));
-          filePromises.push(filePromise);
-        }
-      });
-
-      const files = await Promise.all(filePromises);
-
       // Prepare FormData for AJAX request
       const formData = new FormData();
-      files.forEach((file) => {
-        const filename = file.path.split("/").pop(); // Gets the filename from the path
-        formData.append("file", file.content, filename);
-      });
+      if (file.type === "application/zip" || file.name.endsWith(".zip")) {
+        console.log("its in zip condition");
+        const zip = new JSZip();
+        const contents = await zip.loadAsync(reader.result);
 
+        const filePromises = [];
+        contents.forEach((relativePath, zipEntry) => {
+          if (!zipEntry.dir) {
+            const filePromise = zipEntry.async("blob").then((content) => ({
+              path: relativePath,
+              content,
+            }));
+            filePromises.push(filePromise);
+          }
+        });
+        const files = await Promise.all(filePromises);
+        files.forEach((file) => {
+          const filename = file.path.split("/").pop(); // Gets the filename from the path
+          formData.append("file", file.content, filename);
+        });
+      } else if (file.type.startsWith("image/")) {
+        // If it's an image file, add it to the FormData directly
+        formData.append("file", new Blob([reader.result]), file.name);
+        console.log("its in image condition");
+      }
       // AJAX request to NFT.Storage
       $.ajax({
         url: process.env.NEXT_PUBLIC_NFT_STORAGE_API,
@@ -213,7 +201,15 @@ export default function Nft() {
         <NftWrapper>
           <img src={nft} alt="nft" />
         </NftWrapper>
-        <Button onClick={handleClick} text={"Submit "}></Button>
+        <Button text={"Submit "}></Button>
+
+        <div>
+          <button disabled={isLoading} onClick={() => signMessage()}>
+            Sign message
+          </button>
+          {isSuccess && <div>Signature: {data}</div>}
+          {isError && <div>Error signing message</div>}
+        </div>
       </Flex>
 
       <NftForm
@@ -231,28 +227,18 @@ export default function Nft() {
           multiple
         />
 
-        {Cid && (
+        {cid && (
           <div>
-            <a target="_blank" href={"https://"+Cid + ".ipfs.nftstorage.link"}>
+            <a
+              target="_blank"
+              href={"https://" + cid + ".ipfs.nftstorage.link"}
+            >
               {" "}
-              {Cid + ".ipfs.nftstorage.link"}
+              {cid + ".ipfs.nftstorage.link"}
             </a>
           </div>
         )}
-
-        {/* 
-        {nftUrl && (
-          <div>
-            <p> {nftUrl}</p>
-          </div>
-        )} */}
       </Flex>
-
-      {/* {convertedLink && (
-        <div>
-          <p> {convertedLink}</p>
-        </div>
-      )} */}
     </StyledMain>
   );
 }
@@ -317,6 +303,7 @@ function NftForm({ fields, setFields, setNftInfo, nftInfo }) {
             }
           />
         </Flex>
+
         <Flex align="flex-start" column>
           <label>External Link</label>
           <Input
