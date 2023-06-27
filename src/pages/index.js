@@ -158,6 +158,7 @@ export default function Nft() {
       type: nftInfo.type,
       tokenId: pTokenId.current,
       image: convertedLink,
+      buyer:userAddress.address,
       attributes: fields.map((field) => ({
         trait_type: field.key,
         value: field.value,
