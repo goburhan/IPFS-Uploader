@@ -2,5 +2,5 @@
 // @ for now its timestamp but it will change in future
 export const useSignatureMessage = () => {
   const msg = Date.now().toString();
-  return msg;
+  return { msg };
 };
