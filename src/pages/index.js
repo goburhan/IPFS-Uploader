@@ -58,6 +58,7 @@ export default function Nft() {
   const { msg } = useSignatureMessage();
   const userAddress = useAccount();
   const fileInputRef = useRef(); // At the start of your component
+  const [extension, setExtension] = useState();
   const { data, isError, isLoading, isSuccess, signMessage } = useSignMessage({
     message: msg,
   });
@@ -93,6 +94,7 @@ export default function Nft() {
       const formData = new FormData();
       if (file.type === "application/zip" || file.name.endsWith(".zip")) {
         console.log("its in zip condition");
+        setExtension("/scene.gltf");
         const zip = new JSZip();
         const contents = await zip.loadAsync(reader.result);
 
@@ -115,6 +117,7 @@ export default function Nft() {
         // If it's an image file, add it to the FormData directly
         formData.append("file", new Blob([reader.result]), file.name);
         console.log("its in image condition");
+        setExtension("/" + file.name);
       }
       // AJAX request to NFT.Storage
       $.ajax({
@@ -157,8 +160,8 @@ export default function Nft() {
       description: nftInfo.description,
       type: nftInfo.type,
       tokenId: pTokenId.current,
-      image: convertedLink,
-      buyer:userAddress.address,
+      image: cid + ".ipfs.nftstorage.link" + extension,
+      buyer: userAddress.address,
       attributes: fields.map((field) => ({
         trait_type: field.key,
         value: field.value,
@@ -195,7 +198,9 @@ export default function Nft() {
           {/* <button disabled={isLoading} onClick={() => signMessage()}>
             Sign message
           </button> */}
-          {isSuccess && <div>Signature: {data}</div>}
+          {isSuccess && (
+            <div style={{ flexWrap: "wrap" }}>Signature: {data}</div>
+          )}
           {isError && <div>Error signing message</div>}
         </div>
       </Flex>
