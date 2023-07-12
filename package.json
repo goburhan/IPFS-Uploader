@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next -p 3002",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 3002",
     "lint": "next lint"
   },
   "dependencies": {
@@ -17,6 +17,7 @@
     "@mui/material": "^5.11.13",
     "@web3modal/ethereum": "^2.4.5",
     "@web3modal/react": "^2.4.5",
+    "cloudinary": "^1.37.3",
     "eslint": "8.36.0",
     "eslint-config-next": "13.2.4",
     "ipfs": "^0.66.1",
