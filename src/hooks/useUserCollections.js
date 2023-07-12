@@ -17,6 +17,7 @@ const useUserCollections = () => {
       .then((response) => response.json()) // if the response is a JSON object
       .then((result) => {
         setData(result);
+        console.log(result);
       })
       .catch((error) => {
         setError(error);

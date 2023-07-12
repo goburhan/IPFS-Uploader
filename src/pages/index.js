@@ -90,9 +90,12 @@ export default function Nft() {
 
     const reader = new FileReader();
     reader.onloadend = async () => {
-      // Prepare FormData for AJAX request
       const formData = new FormData();
-      if (file.type === "application/zip" || file.name.endsWith(".zip")) {
+      const fileType = file.type;
+      const fileName = file.name;
+      const fileExtension = fileName.split(".").pop().toLowerCase();
+
+      if (fileType === "application/zip" || fileName.endsWith(".zip")) {
         console.log("its in zip condition");
         setExtension("/scene.gltf");
         const zip = new JSZip();
@@ -110,38 +113,45 @@ export default function Nft() {
         });
         const files = await Promise.all(filePromises);
         files.forEach((file) => {
-          const filename = file.path.split("/").pop(); // Gets the filename from the path
+          const filename = file.path.split("/").pop();
           formData.append("file", file.content, filename);
         });
-      } else if (file.type.startsWith("image/")) {
-        // If it's an image file, add it to the FormData directly
-        formData.append("file", new Blob([reader.result]), file.name);
-        console.log("its in image condition");
-        setExtension("/" + file.name);
+      } else if (
+        fileType.startsWith("image/") ||
+        fileType.startsWith("video/") ||
+        ["gif", "jpg", "jpeg", "png", "mp4", "webm", "ogg"].includes(
+          fileExtension
+        )
+      ) {
+        console.log("its in image/video/gif condition");
+        setExtension("/" + fileName);
+        formData.append("file", file); // No need to convert to blob
+      } else {
+        console.error("Unsupported file type: " + fileType);
+        return;
       }
+
       // AJAX request to NFT.Storage
       $.ajax({
         url: process.env.NEXT_PUBLIC_NFT_STORAGE_API,
         type: "POST",
         headers: {
           Authorization:
-            "Bearer " + process.env.NEXT_PUBLIC_NFT_STORAGE_API_KEY, // Replace with your NFT.Storage API key
+            "Bearer " + process.env.NEXT_PUBLIC_NFT_STORAGE_API_KEY,
         },
         data: formData,
         processData: false,
         contentType: false,
         success: function (data, textStatus, jqXHR) {
           console.log("File uploaded successfully to NFT.Storage");
-          console.log(data); // This will contain the IPFS CID of your uploaded data
+          console.log(data);
           setCid(data.value.cid);
         },
         error: function (jqXHR, textStatus, errorThrown) {
           console.log("ERRORS: " + textStatus);
-          // handle errors here
         },
       });
     };
-
     reader.readAsArrayBuffer(file);
   };
 
@@ -160,7 +170,7 @@ export default function Nft() {
       description: nftInfo.description,
       type: nftInfo.type,
       tokenId: pTokenId.current,
-      image: cid + ".ipfs.nftstorage.link" + extension,
+      image: "https://" + cid + ".ipfs.nftstorage.link" + extension,
       buyer: userAddress.address,
       attributes: fields.map((field) => ({
         trait_type: field.key,
