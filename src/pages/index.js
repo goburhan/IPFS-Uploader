@@ -87,20 +87,20 @@ export default function Nft() {
   const handleImageUpload = async (event) => {
     const file = fileInputRef.current.files[0];
     if (!file) return;
-
+  
     const reader = new FileReader();
     reader.onloadend = async () => {
       const formData = new FormData();
       const fileType = file.type;
       const fileName = file.name;
       const fileExtension = fileName.split(".").pop().toLowerCase();
-
+  
       if (fileType === "application/zip" || fileName.endsWith(".zip")) {
         console.log("its in zip condition");
         setExtension("/scene.gltf");
         const zip = new JSZip();
         const contents = await zip.loadAsync(reader.result);
-
+  
         const filePromises = [];
         contents.forEach((relativePath, zipEntry) => {
           if (!zipEntry.dir) {
@@ -113,8 +113,7 @@ export default function Nft() {
         });
         const files = await Promise.all(filePromises);
         files.forEach((file) => {
-          const filename = file.path.split("/").pop();
-          formData.append("file", file.content, filename);
+          formData.append("file", file.content, file.path); // This will include the path (folders) in the filename
         });
       } else if (
         fileType.startsWith("image/") ||
@@ -125,12 +124,12 @@ export default function Nft() {
       ) {
         console.log("its in image/video/gif condition");
         setExtension("/" + fileName);
-        formData.append("file", file); // No need to convert to blob
+        formData.append("file", file); 
       } else {
         console.error("Unsupported file type: " + fileType);
         return;
       }
-
+  
       // AJAX request to NFT.Storage
       $.ajax({
         url: process.env.NEXT_PUBLIC_NFT_STORAGE_API,
@@ -154,7 +153,7 @@ export default function Nft() {
     };
     reader.readAsArrayBuffer(file);
   };
-
+  
   // this block will run when we recieve the signature
   useEffect(() => {
     data && handleImageUpload();
