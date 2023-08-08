@@ -74,7 +74,9 @@ export default function Nft() {
   });
 
   useEffect(() => {
-    pTokenId.current = "collection_" + nftInfo.collection + nftInfo.tokenId;
+    let gokhan = nftInfo.collection === "Select a collection" ? "" : nftInfo.collection;
+    pTokenId.current = "collection_" + gokhan + nftInfo.tokenId;
+
     console.log(pTokenId.current);
   }, [nftInfo]);
 
@@ -87,20 +89,20 @@ export default function Nft() {
   const handleImageUpload = async (event) => {
     const file = fileInputRef.current.files[0];
     if (!file) return;
-  
+
     const reader = new FileReader();
     reader.onloadend = async () => {
       const formData = new FormData();
       const fileType = file.type;
       const fileName = file.name;
       const fileExtension = fileName.split(".").pop().toLowerCase();
-  
+
       if (fileType === "application/zip" || fileName.endsWith(".zip")) {
         console.log("its in zip condition");
         setExtension("/scene.gltf");
         const zip = new JSZip();
         const contents = await zip.loadAsync(reader.result);
-  
+
         const filePromises = [];
         contents.forEach((relativePath, zipEntry) => {
           if (!zipEntry.dir) {
@@ -124,12 +126,12 @@ export default function Nft() {
       ) {
         console.log("its in image/video/gif condition");
         setExtension("/" + fileName);
-        formData.append("file", file); 
+        formData.append("file", file);
       } else {
         console.error("Unsupported file type: " + fileType);
         return;
       }
-  
+
       // AJAX request to NFT.Storage
       $.ajax({
         url: process.env.NEXT_PUBLIC_NFT_STORAGE_API,
@@ -153,7 +155,7 @@ export default function Nft() {
     };
     reader.readAsArrayBuffer(file);
   };
-  
+
   // this block will run when we recieve the signature
   useEffect(() => {
     data && handleImageUpload();
@@ -164,12 +166,14 @@ export default function Nft() {
     if (!cid) return;
 
     const payload = {
+      isEstimate: "true",
       contractAddress: process.env.NEXT_PUBLIC_PROLL_CONTRACT,
       name: nftInfo.name,
       description: nftInfo.description,
       type: nftInfo.type,
       tokenId: pTokenId.current,
       image: "https://" + cid + ".ipfs.nftstorage.link" + extension,
+      sender: userAddress.address,
       buyer: userAddress.address,
       attributes: fields.map((field) => ({
         trait_type: field.key,
